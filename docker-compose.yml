@@ -1,0 +1,57 @@
+version: "4.15.0"
+services:
+  app:
+    build:
+      args:
+        user: user_management_user
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    working_dir: /var/www/
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    depends_on:
+      - db
+    volumes:
+      - ./:/var/www
+    networks:
+      - user_management
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    ports:
+      - 3307:3306
+    networks:
+      - user_management
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 8005:80
+    depends_on:
+      - db
+      - app
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d/
+    networks:
+      - user_management
+
+networks:
+  user_management:
+    driver: bridge
+
+volumes:
+  dbdata:
+    driver: local
